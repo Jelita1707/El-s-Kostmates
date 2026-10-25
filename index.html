@@ -1784,20 +1784,60 @@
                     fasilitas: ['Wi-Fi', 'AC'],
                     catatan: ''
                 },
-                submitKonsultasi() {
-                    this.userOrders.unshift({
-                        id: 'EL-HUNT-' + Math.floor(100 + Math.random() * 900),
-                        type: '🤝 Kos Hunting & Pendampingan',
-                        kategori: 'Kos Hunting',
-                        tanggal: 'Hari Ini',
-                        harga: 'Rp75.000',
-                        statusText: 'Sedang Diproses',
-                        detail: 'Preferensi: ' + this.kForm.kota + ' • Budget: ' + this.kForm.budget + ' • Tipe: ' + this.kForm.tipe,
-                        progressStep: 1
-                    });
-                    this.showToast('Permintaan Konsultasi Diterima! 🤝', 'Tim Kostmate kami segera membantumu via WhatsApp.');
-                    this.activeTab = 'dashboard';
-                },
+              
+submitKonsultasi() {
+    const f = this.kForm;
+
+    if (!f.nama?.trim() || !f.kota?.trim() || !f.budget?.trim()) {
+        alert('Mohon lengkapi nama, lokasi, dan budget terlebih dahulu.');
+        return;
+    }
+
+    const referensi = 'ELS-KS-' + Date.now();
+
+    const ringkasan = [
+        'RINGKASAN KONSULTASI EL’S KOSTMATES',
+        '',
+        'Referensi sementara: ' + referensi,
+        'Nama: ' + f.nama,
+        'Status: ' + (f.status || '-'),
+        'Lokasi: ' + f.kota,
+        'Kampus/Tempat Kerja: ' + (f.kampus || '-'),
+        'Budget: ' + f.budget,
+        'Jenis Kos: ' + (f.tipe || '-'),
+        'Kamar Mandi: ' + (f.km || '-'),
+        'Fasilitas: ' + (f.fasilitas || []).join(', '),
+        'Catatan: ' + (f.catatan || '-')
+    ].join('\n');
+
+    const setuju = confirm(
+        ringkasan +
+        '\n\nData belum dikirim. Klik OK untuk melanjutkan ke WhatsApp admin, atau Cancel untuk mengedit.'
+    );
+
+    if (!setuju) return;
+
+    // Ganti dengan nomor WhatsApp bisnis resmi
+    const adminWA = '+6281269284916';
+
+    if (!/^62[0-9]{8,13}$/.test(adminWA)) {
+        alert('Nomor WhatsApp admin belum diatur.');
+        return;
+    }
+
+    const pesan = ringkasan +
+        '\n\nHalo Admin, saya ingin mengajukan konsultasi. Mohon informasi dan konfirmasinya.';
+
+    const url = 'https://wa.me/' + adminWA +
+        '?text=' + encodeURIComponent(pesan);
+
+    window.open(url, '_blank');
+
+    alert(
+        'WhatsApp telah dicoba dibuka. Silakan tekan Kirim di WhatsApp. Permintaan belum dianggap diterima sebelum dikonfirmasi admin.'
+    );
+},
+
                 selectPaketKonsultasi(namaPaket) {
                     this.showToast('Paket ' + namaPaket + ' Dipilih', 'Silakan isi form detail di atas untuk memulai!');
                     this.scrollToSection('form-konsultasi-step');
