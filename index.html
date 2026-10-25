@@ -57,6 +57,153 @@
         }
     </style>
 </head>
+  
+<!-- PILIHAN JENIS PENGGUNA EL'S KOSTMATES -->
+<div id="elsRoleModal" class="els-role-overlay" hidden>
+  <div class="els-role-dialog" role="dialog"
+       aria-modal="true"
+       aria-labelledby="elsRoleTitle">
+
+    <button type="button"
+            class="els-role-close"
+            onclick="closeElsRole()"
+            aria-label="Tutup">
+      &times;
+    </button>
+
+    <h2 id="elsRoleTitle">Selamat Datang!</h2>
+    <p>Bagaimana kamu ingin menggunakan El's Kostmates?</p>
+
+    <div class="els-role-options">
+      <button type="button"
+              class="els-role-option"
+              onclick="chooseElsRole('owner')">
+        <span class="els-role-icon">🏠</span>
+        <strong>Pemilik Kos</strong>
+        <small>Daftarkan dan kelola kos milikmu</small>
+      </button>
+
+      <button type="button"
+              class="els-role-option"
+              onclick="chooseElsRole('seeker')">
+        <span class="els-role-icon">🔎</span>
+        <strong>Pencari Kos</strong>
+        <small>Temukan kos yang sesuai kebutuhanmu</small>
+      </button>
+    </div>
+
+    <p id="elsRoleMessage" role="status"></p>
+  </div>
+</div>
+
+<style>
+  .els-role-overlay[hidden] {
+    display: none !important;
+  }
+
+  .els-role-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .els-role-dialog {
+    background: #fff;
+    color: #29352e;
+    width: 100%;
+    max-width: 520px;
+    border-radius: 22px;
+    padding: 28px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 12px 40px rgba(0,0,0,.15);
+  }
+
+  .els-role-dialog h2 {
+    font-size: 25px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .els-role-dialog p {
+    margin-bottom: 20px;
+  }
+
+  .els-role-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 30px;
+  }
+
+  .els-role-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 14px;
+  }
+
+  .els-role-option {
+    border: 2px solid #e5e7eb;
+    border-radius: 15px;
+    padding: 22px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background: #fafaf7;
+  }
+
+  .els-role-option:hover,
+  .els-role-option:focus-visible {
+    border-color: #47745b;
+    background: #eff7f0;
+  }
+
+  .els-role-icon {
+    font-size: 35px;
+  }
+
+  .els-role-option small {
+    font-size: 12px;
+    color: #647067;
+  }
+
+  @media (max-width: 420px) {
+    .els-role-options {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  function openElsRole() {
+    document.getElementById('elsRoleModal').hidden = false;
+  }
+
+  function closeElsRole() {
+    document.getElementById('elsRoleModal').hidden = true;
+  }
+
+  function chooseElsRole(role) {
+    const message = document.getElementById('elsRoleMessage');
+
+    if (role === 'owner') {
+      message.textContent =
+        'Jalur Pemilik Kos dipilih. Halaman pendaftaran pemilik akan dibuat berikutnya.';
+    } else if (role === 'seeker') {
+      message.textContent =
+        'Jalur Pencari Kos dipilih. Halaman pendaftaran pencari akan dibuat berikutnya.';
+    }
+  }
+</script>
+<!-- AKHIR PILIHAN JENIS PENGGUNA -->
+  
 <body class="bg-cream text-charcoal font-sans antialiased min-h-screen flex flex-col selection:bg-brand selection:text-white"
       x-data="appData()" 
       x-init="initApp()">
@@ -120,7 +267,13 @@
                     </button>
                     <template x-if="!isLoggedIn">
                         <div class="flex items-center gap-2">
-                            <button @click="isLoggedIn = true; showToast('Berhasil Login', 'Selamat datang kembali, Jel!')" class="px-4 py-2.5 rounded-xl border border-brand text-brand font-semibold text-sm hover:bg-brand/5 transition">Masuk</button>
+                            
+<button
+    type="button"
+    @click="openElsRole()"
+    class="px-4 py-2.5 rounded-xl border border-brand text-brand font-semibold text-sm hover:bg-brand/5 transition">
+    Masuk
+</button>
                             <button @click="isLoggedIn = true; showToast('Registrasi Berhasil', 'Akun El’s Kostmates kamu siap digunakan')" class="px-4 py-2.5 rounded-xl bg-brand text-cream font-semibold text-sm hover:bg-brand-light shadow-md transition">Daftar</button>
                         </div>
                     </template>
