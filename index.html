@@ -2079,21 +2079,309 @@ submitKonsultasi() {
     document.getElementById('elsRoleModal').hidden = false;
   }
 
-  function closeElsRole() {
+  
+function closeElsRole() {
     document.getElementById('elsRoleModal').hidden = true;
-  }
+    document.getElementById('elsAuthPanel')?.remove();
+    elsSelectedRole = null;
+}
+ 
+let elsSelectedRole = null;
+let elsAuthMode = 'login';
+let elsAuthClient = null;
 
-  function chooseElsRole(role) {
+// Membuka formulir sesuai jenis pengguna
+function chooseElsRole(role) {
+    if (!['owner', 'seeker'].includes(role)) return;
+
+    elsSelectedRole = role;
+
     const message = document.getElementById('elsRoleMessage');
 
-    if (role === 'owner') {
-      message.textContent =
-        'Jalur Pemilik Kos dipilih. Halaman pendaftaran pemilik akan dibuat berikutnya.';
-    } else if (role === 'seeker') {
-      message.textContent =
-        'Jalur Pencari Kos dipilih. Halaman pendaftaran pencari akan dibuat berikutnya.';
+    if (!message) {
+        alert('Bagian formulir belum ditemukan.');
+        return;
     }
-  }
+
+    const oldPanel = document.getElementById('elsAuthPanel');
+    if (oldPanel) oldPanel.remove();
+
+    message.textContent = '';
+
+    const panel = document.createElement('div');
+    panel.id = 'elsAuthPanel';
+
+    // Semua HTML di bawah adalah template statis.
+    panel.innerHTML = `
+      <div style="margin-top:20px;text-align:left">
+
+        <h3 id="elsAuthHeading"
+            style="font-size:20px;font-weight:800;
+                   color:#204735;margin-bottom:8px">
+          Masuk Akun
+        </h3>
+
+        <p id="elsAuthRole"
+           style="font-size:13px;color:#47745b;
+                  margin-bottom:16px"></p>
+
+        <form id="elsLoginForm">
+
+          <div id="elsExtraFields" hidden>
+            <label>Nama Lengkap</label>
+            <input id="elsFullName" type="text"
+                   autocomplete="name"
+                   placeholder="Nama lengkap">
+
+            <label>Nomor WhatsApp</label>
+            <input id="elsPhone" type="tel"
+                   autocomplete="tel"
+                   placeholder="08xxxxxxxxxx">
+          </div>
+
+          <label>Email</label>
+          <input id="elsEmail" type="email"
+                 autocomplete="email"
+                 placeholder="nama@email.com"
+                 required>
+
+          <label>Password</label>
+          <input id="elsPassword" type="password"
+                 autocomplete="current-password"
+                 minlength="8" required>
+
+          <div id="elsConfirmField" hidden>
+            <label>Konfirmasi Password</label>
+            <input id="elsConfirmPassword"
+                   type="password"
+                   autocomplete="new-password">
+          </div>
+
+          <p id="elsAuthFeedback"
+             role="status"
+             style="font-size:13px;margin-top:12px">
+          </p>
+
+          <button id="elsAuthSubmit"
+                  type="submit"
+                  style="width:100%;margin-top:15px;
+                         padding:12px;background:#47745b;
+                         color:white;border-radius:10px;
+                         font-weight:700">
+            Masuk Sekarang
+          </button>
+
+        </form>
+
+        <button type="button"
+                id="elsSwitchAuth"
+                style="width:100%;margin-top:15px;
+                       color:#47745b;font-size:13px">
+          Belum punya akun? Daftar
+        </button>
+
+        <button type="button"
+                id="elsBackRole"
+                style="width:100%;margin-top:12px;
+                       color:#647067;font-size:13px">
+          Kembali Pilih Peran
+        </button>
+
+      </div>
+    `;
+
+    message.insertAdjacentElement('afterend', panel);
+
+    panel.querySelectorAll('input').forEach(input => {
+        input.style.width = '100%';
+        input.style.padding = '11px';
+        input.style.margin = '6px 0 13px';
+        input.style.border = '1px solid #d5ded7';
+        input.style.borderRadius = '9px';
+    });
+
+    panel.querySelectorAll('label').forEach(label => {
+        label.style.display = 'block';
+        label.style.fontWeight = '600';
+        label.style.fontSize = '13px';
+    });
+
+    document.getElementById('elsAuthRole').textContent =
+        role === 'owner'
+          ? 'Akun Pemilik Kos'
+          : 'Akun Pencari Kos';
+
+    elsAuthMode = 'login';
+    updateElsAuthView();
+
+    document.getElementById('elsSwitchAuth')
+        .addEventListener('click', () => {
+            elsAuthMode = elsAuthMode === 'login'
+                ? 'register' : 'login';
+            updateElsAuthView();
+        });
+
+    document.getElementById('elsBackRole')
+        .addEventListener('click', () => {
+            panel.remove();
+            elsSelectedRole = null;
+        });
+
+    document.getElementById('elsLoginForm')
+        .addEventListener('submit', submitElsAuth);
+}
+
+// Mengubah tampilan Login / Daftar
+function updateElsAuthView() {
+    const register = elsAuthMode === 'register';
+
+    document.getElementById('elsExtraFields').hidden =
+        !register;
+
+    document.getElementById('elsConfirmField').hidden =
+        !register;
+
+    document.getElementById('elsFullName').required =
+        register;
+
+    document.getElementById('elsPhone').required =
+        register;
+
+    document.getElementById('elsConfirmPassword').required =
+        register;
+
+    document.getElementById('elsAuthHeading').textContent =
+        register ? 'Daftar Akun Baru' : 'Masuk Akun';
+
+    document.getElementById('elsAuthSubmit').textContent =
+        register ? 'Daftar Sekarang' : 'Masuk Sekarang';
+
+    document.getElementById('elsSwitchAuth').textContent =
+        register
+          ? 'Sudah punya akun? Masuk'
+          : 'Belum punya akun? Daftar';
+
+    document.getElementById('elsAuthFeedback').textContent = '';
+    document.getElementById('elsLoginForm').reset();
+}
+
+// Menghubungkan formulir dengan Supabase
+async function submitElsAuth(event) {
+    event.preventDefault();
+
+    const feedback = document.getElementById('elsAuthFeedback');
+    const button = document.getElementById('elsAuthSubmit');
+
+    feedback.textContent = '';
+
+    const config = window.elsConfig;
+
+    if (!config?.url || !config?.key ||
+        !window.supabase?.createClient) {
+        feedback.textContent =
+            'Koneksi Supabase belum siap.';
+        return;
+    }
+
+    if (!elsAuthClient) {
+        elsAuthClient = window.supabase.createClient(
+            config.url, config.key
+        );
+    }
+
+    const email = document.getElementById('elsEmail')
+        .value.trim();
+
+    const password = document.getElementById('elsPassword')
+        .value;
+
+    const register = elsAuthMode === 'register';
+
+    const name = document.getElementById('elsFullName')
+        .value.trim();
+
+    const phone = document.getElementById('elsPhone')
+        .value.trim();
+
+    const confirmPassword =
+        document.getElementById('elsConfirmPassword').value;
+
+    if (register) {
+        if (!name || !/^08[0-9]{8,11}$/.test(phone)) {
+            feedback.textContent =
+                'Isi nama dan nomor WhatsApp yang valid.';
+            return;
+        }
+
+        if (password.length < 8) {
+            feedback.textContent =
+                'Password minimal 8 karakter.';
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            feedback.textContent =
+                'Konfirmasi password tidak cocok.';
+            return;
+        }
+    }
+
+    button.disabled = true;
+    button.textContent = 'Memproses...';
+
+    try {
+        if (register) {
+            const { data, error } =
+                await elsAuthClient.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        emailRedirectTo: window.location.origin,
+                        data: {
+                            full_name: name,
+                            phone: phone,
+                            requested_role: elsSelectedRole
+                        }
+                    }
+                });
+
+            if (error) throw error;
+
+            feedback.textContent = data.session
+                ? 'Sesi akun aktif. Dashboard belum tersedia.'
+                : 'Permintaan pendaftaran diproses. Periksa email untuk verifikasi jika diperlukan.';
+
+        } else {
+            const { data, error } =
+                await elsAuthClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+            if (error) throw error;
+
+            if (!data.session) {
+                throw new Error('Sesi login belum tersedia.');
+            }
+
+            feedback.textContent =
+                'Login berhasil! Dashboard sedang dikembangkan.';
+
+            // Jangan mengaktifkan akses owner dari
+            // pilihan frontend. Role perlu diperiksa
+            // melalui database dan aturan akses server.
+        }
+
+    } catch (error) {
+        feedback.textContent =
+            error.message || 'Terjadi kesalahan.';
+    } finally {
+        button.disabled = false;
+        button.textContent = register
+            ? 'Daftar Sekarang'
+            : 'Masuk Sekarang';
+    }
+}
 </script>
 <!-- AKHIR PILIHAN JENIS PENGGUNA -->  
 </body>
