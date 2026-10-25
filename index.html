@@ -56,15 +56,19 @@
             border-radius: 10px;
         }
     </style>
-    </style>
 
-<!-- Koneksi Supabase -->
+<!-- Koneksi Supabase: hanya publishable key; jangan pernah gunakan secret key -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
   window.elsConfig = {
     url: "https://eftikfekhjjklkohpxzu.supabase.co",
     key: "sb_publishable_FQT4Ukucn9L_eJY1BpJMnA_mWU-HFg4"
+  };
+  window.getElsSupabaseClient = function() {
+    if (!window.supabase?.createClient || !window.elsConfig?.key?.startsWith('sb_publishable_')) return null;
+    if (!window._elsSupabaseClient) window._elsSupabaseClient = window.supabase.createClient(window.elsConfig.url,window.elsConfig.key);
+    return window._elsSupabaseClient;
   };
 </script>
 </head>
@@ -139,13 +143,13 @@
     class="px-4 py-2.5 rounded-xl border border-brand text-brand font-semibold text-sm hover:bg-brand/5 transition">
     Masuk
 </button>
-                            <button onclick="openElsRole()" class="px-4 py-2.5 rounded-xl bg-brand text-cream font-semibold text-sm hover:bg-brand-light shadow-md transition">Daftar</button>
+                            <button type="button" onclick="openElsRole('register')" class="px-4 py-2.5 rounded-xl bg-brand text-cream font-semibold text-sm hover:bg-brand-light shadow-md transition">Daftar</button>
                         </div>
                     </template>
                     <template x-if="isLoggedIn">
                         <button @click="activeTab = 'dashboard'" class="flex items-center gap-2 bg-softbeige hover:bg-brand/10 px-3 py-1.5 rounded-2xl border border-brand/20 transition">
-                            <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs">J</div>
-                            <span class="text-xs font-bold text-brand">Masuk</span>
+                            <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs" x-text="userName.slice(0,1).toUpperCase()"></div>
+                            <span class="text-xs font-bold text-brand" x-text="userName || 'Dashboard'"></span>
                         </button>
                     </template>
                 </div>
@@ -188,7 +192,7 @@
 
 <button
     type="button"
-    onclick="openElsRole()"
+    onclick="openElsRole('register')"
     @click="mobileMenuOpen = false"
     class="w-full py-2.5 rounded-xl bg-brand text-cream font-bold text-sm text-center">
     Daftar
@@ -197,7 +201,7 @@
                 </template>
                 <template x-if="isLoggedIn">
                     <button @click="activeTab = 'dashboard'; mobileMenuOpen = false" class="w-full py-3 rounded-xl bg-brand/10 text-brand font-bold flex items-center justify-center gap-2">
-                        <i data-lucide="user" class="w-5 h-5"></i> Dashboard Saya (Jel)
+                        <i data-lucide="user" class="w-5 h-5"></i> Dashboard Saya
                     </button>
                 </template>
             </div>
@@ -250,7 +254,7 @@
                                         <img src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80" alt="Kamar Kos Modern" class="w-full h-full object-cover">
                                         <div class="absolute inset-0 bg-gradient-to-t from-brand/60 via-transparent to-transparent"></div>
                                         <span class="absolute bottom-3 left-3 bg-brand text-white text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1">
-                                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Terverifikasi El’s
+                                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Info Kos
                                         </span>
                                     </div>
                                     
@@ -542,7 +546,7 @@
                                 <i data-lucide="shield-check" class="w-6 h-6"></i>
                             </div>
                             <h3 class="font-extrabold text-charcoal mb-2">🔐 Terverifikasi</h3>
-                            <p class="text-xs text-charcoal/70 font-medium">Seluruh daftar kos dan vendor jasa telah melalui verifikasi kelaikan tim kami.</p>
+                            <p class="text-xs text-charcoal/70 font-medium">Listing baru ditinjau sebelum dipublikasikan. Informasi perlu dipastikan kembali dengan pemilik kos.</p>
                         </div>
 
                         <div class="bg-white p-6 rounded-3xl border border-brand/10 shadow-sm text-center">
@@ -633,7 +637,7 @@
                 <div class="bg-white rounded-3xl p-6 sm:p-8 border border-brand/10 shadow-lg space-y-6">
                     <div>
                         <h1 class="text-3xl font-extrabold text-charcoal">Temukan Kos yang Cocok Untukmu</h1>
-                        <p class="text-sm text-charcoal/70 font-medium mt-1">Cari kos terverifikasi dengan fasilitas lengkap di lokasi strategis Medan & sekitarnya.</p>
+                        <p class="text-sm text-charcoal/70 font-medium mt-1">Cari informasi kos dengan fasilitas lengkap di lokasi strategis Medan & sekitarnya.</p>
                     </div>
 
                     <!-- Search Bar & Filters -->
@@ -660,6 +664,7 @@
                     </div>
                 </div>
 
+                <p x-show="kosList.length === 0" class="text-sm bg-white border border-brand/10 rounded-xl p-5">Belum ada listing kos yang disetujui admin.</p>
                 <!-- Kos List Cards Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <template x-for="kos in filteredKosList()" :key="kos.id">
@@ -670,7 +675,7 @@
                                     <img :src="kos.image" :alt="kos.nama" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     <div class="absolute top-3 left-3 flex gap-2">
                                         <span class="bg-brand text-cream text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
-                                            <i data-lucide="shield-check" class="w-3 h-3"></i> Terverifikasi
+                                            <i data-lucide="shield-check" class="w-3 h-3"></i> Info Kos
                                         </span>
                                         <span class="bg-white/90 text-charcoal text-[10px] font-bold px-2 py-1 rounded-full" x-text="kos.tipe"></span>
                                     </div>
@@ -738,7 +743,7 @@
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="bg-brand text-cream text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                                            <i data-lucide="shield-check" class="w-3 h-3"></i> Terverifikasi El’s
+                                            <i data-lucide="shield-check" class="w-3 h-3"></i> Info Kos
                                         </span>
                                         <span class="bg-softbeige text-brand text-xs font-bold px-2.5 py-0.5 rounded-full" x-text="selectedKos.tipe"></span>
                                     </div>
@@ -1433,87 +1438,71 @@
             </div>
         </div>
 
-        <!-- ================= HALAMAN DASHBOARD USER & TRACKING ================= -->
-        <div x-show="activeTab === 'dashboard'" x-transition class="py-10">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-                
-                <!-- Greeting Header -->
-                <div class="bg-white p-6 sm:p-8 rounded-3xl border border-brand/10 shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 rounded-full bg-brand text-cream font-extrabold text-2xl flex items-center justify-center shadow-md">
-                            J
-                        </div>
-                        <div>
-                            <h1 class="text-2xl sm:text-3xl font-black text-charcoal">Halo, Jel! 👋</h1>
-                            <p class="text-xs sm:text-sm text-charcoal/70 font-medium">Selamat datang di Dashboard El’s Kostmates kamu.</p>
-                        </div>
-                    </div>
-                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
-                        ● Akun Rantau Aktif
-                    </span>
-                </div>
-
-                <!-- PESANAN AKTIF & TRACKING STATUS -->
-                <div class="space-y-6" x-data="{ dashboardFilter: 'Semua' }">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 class="text-2xl font-extrabold text-charcoal">Aktivitas & Pesanan Saya</h2>
-                        <!-- Filter Tabs -->
-                        <div class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-                            <template x-for="f in ['Semua', 'Kos Hunting', 'Pindahan', 'Cleaning', 'Survei']">
-                                <button @click="dashboardFilter = f" :class="dashboardFilter === f ? 'bg-brand text-cream font-bold' : 'bg-white text-charcoal hover:bg-brand/10'" class="px-4 py-2 rounded-xl text-xs border border-brand/10 transition whitespace-nowrap">
-                                    <span x-text="f"></span>
-                                </button>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Orders Grid with Progress Tracking -->
-                    <div class="space-y-6">
-                        <template x-for="order in userOrders" :key="order.id">
-                            <div x-show="dashboardFilter === 'Semua' || order.kategori === dashboardFilter" class="bg-white rounded-3xl p-6 border border-brand/10 shadow-lg space-y-6">
-                                
-                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-brand/10 pb-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center font-bold">
-                                            <i data-lucide="package" class="w-5 h-5" x-show="order.type.includes('Pindahan')"></i>
-                                            <i data-lucide="sparkles" class="w-5 h-5" x-show="order.type.includes('Cleaning')"></i>
-                                            <i data-lucide="users" class="w-5 h-5" x-show="order.type.includes('Hunting')"></i>
-                                            <i data-lucide="calendar" class="w-5 h-5" x-show="order.type.includes('Survei')"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-extrabold text-base text-charcoal" x-text="order.type"></h3>
-                                            <p class="text-xs text-charcoal/60" x-text="'ID: ' + order.id + ' • ' + order.tanggal"></p>
-                                        </div>
-                                    </div>
-                                    <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-amber-100 text-amber-800" x-text="order.statusText"></span>
-                                </div>
-
-                                <!-- Order Details Snippet -->
-                                <div class="text-xs text-charcoal/80 space-y-1 bg-softbeige/30 p-4 rounded-2xl border border-brand/5">
-                                    <p x-show="order.detail" class="font-medium"><span class="font-bold">Detail:</span> <span x-text="order.detail"></span></p>
-                                    <p class="font-medium"><span class="font-bold">Estimasi / Harga:</span> <span class="text-brand font-bold" x-text="order.harga"></span></p>
-                                </div>
-
-                                <!-- TRACKING PROGRESS INDICATOR -->
-                                <div class="space-y-2">
-                                    <span class="text-xs font-bold text-charcoal block">Status Progress Pesanan:</span>
-                                    <div class="grid grid-cols-5 gap-1 text-center">
-                                        <template x-for="(st, idx) in ['Pesanan dibuat', 'Dikonfirmasi', 'Dijadwalkan', 'Sedang diproses', 'Selesai']" :key="idx">
-                                            <div class="space-y-1">
-                                                <div class="h-2 rounded-full" :class="idx <= order.progressStep ? 'bg-brand' : 'bg-gray-200'"></div>
-                                                <span class="text-[9px] sm:text-[10px] font-bold block" :class="idx <= order.progressStep ? 'text-brand' : 'text-gray-400'" x-text="st"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
+        <!-- ================= DASHBOARD BERDASARKAN PERAN ================= -->
+        <section x-show="activeTab === 'dashboard' && isLoggedIn" x-cloak class="py-10">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
+            <div class="bg-white rounded-3xl border border-brand/10 shadow-lg p-6 sm:p-8 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p class="text-xs uppercase tracking-wider font-bold text-brand">El’s Kostmates • Area Akun</p>
+                <h1 class="text-2xl sm:text-3xl font-black text-charcoal mt-1" x-text="userRole === 'owner' ? 'Dashboard Pemilik Kos' : 'Dashboard Pencari Kos'"></h1>
+                <p class="text-sm text-charcoal/70 mt-2">Halo, <span x-text="userName"></span>! Kelola kebutuhan kosmu di sini.</p>
+              </div>
+              <button @click="logoutEls()" class="px-5 py-3 rounded-xl border border-brand text-brand font-bold text-sm hover:bg-brand/5">Keluar Akun</button>
             </div>
-        </div>
+            <p x-show="dashboardError" x-text="dashboardError" role="alert" class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900"></p>
+
+            <!-- PEMILIK KOS -->
+            <div x-show="userRole === 'owner'" class="space-y-6">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white border border-brand/10 rounded-2xl p-5 shadow-sm"><p class="text-xs text-charcoal/60 font-semibold">Kos Saya</p><p class="text-3xl font-black text-brand mt-2" x-text="ownerListings.length"></p></div>
+                <div class="bg-white border border-brand/10 rounded-2xl p-5 shadow-sm"><p class="text-xs text-charcoal/60 font-semibold">Menunggu Peninjauan</p><p class="text-3xl font-black text-brand mt-2" x-text="ownerListings.filter(k => k.status === 'pending').length"></p></div>
+                <div class="bg-white border border-brand/10 rounded-2xl p-5 shadow-sm"><p class="text-xs text-charcoal/60 font-semibold">Dipublikasikan</p><p class="text-3xl font-black text-brand mt-2" x-text="ownerListings.filter(k => k.status === 'approved').length"></p></div>
+              </div>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-3xl border border-brand/10 shadow-md p-6 sm:p-8">
+                  <h2 class="text-xl font-extrabold text-brand">🏠 Tambah Kos</h2>
+                  <p class="text-xs text-charcoal/60 mt-1 mb-5">Listing baru harus ditinjau admin sebelum ditampilkan kepada pencari.</p>
+                  <form @submit.prevent="saveOwnerListing()" class="space-y-3">
+                    <label class="block text-sm font-semibold">Nama kos *<input x-model.trim="ownerDraft.nama" required maxlength="100" class="w-full mt-1 p-3 rounded-xl border border-brand/20" placeholder="Contoh: Kos Melati"></label>
+                    <label class="block text-sm font-semibold">Alamat lengkap *<textarea x-model.trim="ownerDraft.alamat" required maxlength="400" rows="2" class="w-full mt-1 p-3 rounded-xl border border-brand/20" placeholder="Jalan, nomor, kelurahan, kota"></textarea></label>
+                    <label class="block text-sm font-semibold">Area / lokasi *<input x-model.trim="ownerDraft.lokasi" required maxlength="120" class="w-full mt-1 p-3 rounded-xl border border-brand/20" placeholder="Contoh: Padang Bulan, Medan"></label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label class="block text-sm font-semibold">Harga/bulan (Rp) *<input type="number" min="1" step="1000" x-model.number="ownerDraft.harga" required class="w-full mt-1 p-3 rounded-xl border border-brand/20"></label>
+                      <label class="block text-sm font-semibold">Kamar tersedia *<input type="number" min="0" max="999" step="1" x-model.number="ownerDraft.ketersediaan" required class="w-full mt-1 p-3 rounded-xl border border-brand/20"></label>
+                    </div>
+                    <label class="block text-sm font-semibold">Jenis kos *<select x-model="ownerDraft.tipe" required class="w-full mt-1 p-3 rounded-xl border border-brand/20"><option value="Putra">Putra</option><option value="Putri">Putri</option><option value="Campur">Campur</option></select></label>
+                    <label class="block text-sm font-semibold">Fasilitas (pisahkan koma)<input x-model.trim="ownerDraft.fasilitas" maxlength="300" class="w-full mt-1 p-3 rounded-xl border border-brand/20" placeholder="Wi-Fi, AC, Kamar mandi dalam"></label>
+                    <label class="block text-sm font-semibold">Peraturan (pisahkan koma)<input x-model.trim="ownerDraft.peraturan" maxlength="300" class="w-full mt-1 p-3 rounded-xl border border-brand/20" placeholder="Tidak merokok, jam bertamu"></label>
+                    <label class="block text-sm font-semibold">Deskripsi<textarea x-model.trim="ownerDraft.deskripsi" maxlength="1500" rows="3" class="w-full mt-1 p-3 rounded-xl border border-brand/20"></textarea></label>
+                    <p class="text-xs text-charcoal/60">Upload foto properti akan ditambahkan setelah Supabase Storage dikonfigurasi. Jangan masukkan data pribadi sensitif ke deskripsi.</p>
+                    <button type="submit" :disabled="savingListing" class="w-full py-3 rounded-xl bg-brand text-cream font-bold disabled:opacity-50" x-text="savingListing ? 'Menyimpan...' : 'Kirim Kos untuk Ditinjau'"></button>
+                  </form>
+                </div>
+                <div class="bg-white rounded-3xl border border-brand/10 shadow-md p-6 sm:p-8 space-y-4">
+                  <h2 class="text-xl font-extrabold text-brand">Kos Saya</h2>
+                  <p x-show="!ownerListings.length" class="text-sm text-charcoal/60">Belum ada kos yang didaftarkan.</p>
+                  <template x-for="kos in ownerListings" :key="kos.id"><div class="rounded-2xl border border-brand/10 bg-softbeige/40 p-4 space-y-2">
+                    <div class="flex justify-between gap-3 items-start"><h3 class="font-extrabold" x-text="kos.nama"></h3><span class="text-xs font-bold rounded-lg px-2 py-1 bg-white text-brand" x-text="kos.status === 'approved' ? 'Dipublikasikan' : kos.status === 'rejected' ? 'Perlu Perbaikan' : 'Menunggu Peninjauan'"></span></div>
+                    <p class="text-sm text-charcoal/70" x-text="kos.lokasi"></p><p class="text-sm font-bold text-brand" x-text="formatRupiah(kos.harga) + '/bulan'"></p>
+                  </div></template>
+                  <div class="pt-4 border-t border-brand/10 flex flex-wrap gap-2"><button @click="activeTab = 'cleaning'" class="px-4 py-2 bg-softbeige rounded-xl text-brand text-sm font-bold">Pesan Cleaning</button><button @click="activeTab = 'pindahan'" class="px-4 py-2 bg-softbeige rounded-xl text-brand text-sm font-bold">Jasa Pindahan</button></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PENCARI KOS -->
+            <div x-show="userRole === 'seeker'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <template x-for="action in [
+                {title:'Cari Kos',subtitle:'Lihat listing dan filter harga',tab:'cari-kos',emoji:'🔎'},
+                {title:'Kos Favorit',subtitle:'Lihat kos yang kamu tandai',tab:'favorites',emoji:'❤️'},
+                {title:'Konsultasi Kos',subtitle:'Diskusikan kebutuhanmu',tab:'konsultasi',emoji:'💬'},
+                {title:'Jasa Pindahan',subtitle:'Bantuan pindah barang',tab:'pindahan',emoji:'📦'},
+                {title:'Cleaning Kos',subtitle:'Layanan kebersihan',tab:'cleaning',emoji:'🧹'}
+              ]" :key="action.title"><button @click="activeTab = action.tab" class="text-left bg-white rounded-3xl border border-brand/10 shadow-sm hover:shadow-lg p-6 transition"><span class="text-3xl" x-text="action.emoji"></span><h2 class="font-extrabold text-lg mt-4 text-brand" x-text="action.title"></h2><p class="text-xs text-charcoal/70 mt-2" x-text="action.subtitle"></p></button></template>
+            </div>
+          </div>
+        </section>
+        <section x-show="activeTab === 'dashboard' && !isLoggedIn" x-cloak class="max-w-3xl mx-auto p-10 text-center"><h2 class="text-2xl font-bold">Masuk untuk melihat dashboard</h2><button @click="openElsRole('login')" class="mt-5 px-6 py-3 rounded-xl bg-brand text-white font-bold">Masuk / Daftar</button></section>
 
     </main>
 
@@ -1579,6 +1568,13 @@
                 activeTab: 'home',
                 mobileMenuOpen: false,
                 isLoggedIn: false,
+                userRole: null,
+                userName: '',
+                userId: null,
+                dashboardError: '',
+                ownerListings: [],
+                savingListing: false,
+                ownerDraft: {nama:'',alamat:'',lokasi:'',harga:0,ketersediaan:0,tipe:'Putri',fasilitas:'',peraturan:'',deskripsi:''},
                 favorites: [1, 3],
                 toasts: [],
                 toastIdCounter: 1,
@@ -1690,7 +1686,7 @@
                 // FAQ Data
                 faqs: [
                     { q: 'Bagaimana cara mencari kos di El’s Kostmates?', a: 'Kamu bisa memilih dua opsi: mencari mandiri via halaman Cari Kos, atau menggunakan fitur Konsultasi & Kos Hunting agar tim kami bantu carikan dari A-Z.' },
-                    { q: 'Apakah kos yang terdaftar sudah diverifikasi?', a: 'Ya! Tim El’s Kostmates turun langsung mengecek lokasi, kebenaran foto, fasilitas, dan keamanan kos.' },
+                    { q: 'Bagaimana proses peninjauan kos?', a: 'Listing baru perlu ditinjau sebelum dipublikasikan. Selalu konfirmasikan detail dan kondisi aktual dengan pemilik.' },
                     { q: 'Apakah saya bisa survei kos terlebih dahulu?', a: 'Tentu. Kamu bisa menjadwalkan survei mandiri atau minta didampingi tim Kostmate kami.' },
                     { q: 'Bagaimana cara memesan jasa pindahan kos?', a: 'Buka menu Pindahan, masukkan alamat asal & tujuan, pilih kendaraan, dan sistem akan langsung menampilkan estimasi biaya transparan.' },
                     { q: 'Apakah cleaning kamar kos bisa dilakukan secara berkala?', a: 'Bisa. Kamu bisa memesan layanan Basic Cleaning harian/mingguan atau Deep Cleaning bulanan.' }
@@ -1698,12 +1694,80 @@
 
                 // Methods
                 initApp() {
+                    this.loadElsSession();
+                    this.loadPublishedListings();
                     this.selectedKos = this.kosList[0];
                     this.$watch('activeTab', () => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                         setTimeout(() => lucide.createIcons(), 100);
                     });
                     setTimeout(() => lucide.createIcons(), 200);
+                },
+
+                async loadElsSession() {
+                    const client = window.getElsSupabaseClient?.();
+                    if (!client) { this.dashboardError = 'Isi publishable key Supabase untuk mengaktifkan akun.'; return; }
+                    try {
+                        const {data:{user},error} = await client.auth.getUser();
+                        if (error || !user) { this.isLoggedIn = false; this.userRole = null; this.userId = null; return; }
+                        const {data:profile,error:profileError} = await client.from('profiles').select('role,full_name').eq('id',user.id).single();
+                        if (profileError || !profile || !['owner','seeker'].includes(profile.role)) {
+                            this.isLoggedIn = false;
+                            this.dashboardError = 'Profil akun belum tersedia. Jalankan SQL setup yang disertakan dan masuk kembali.';
+                            return;
+                        }
+                        this.isLoggedIn = true;
+                        this.userId = user.id;
+                        this.userRole = profile.role;
+                        this.userName = profile.full_name || user.email?.split('@')[0] || 'Pengguna';
+                        this.dashboardError = '';
+                        if (this.userRole === 'owner') await this.loadOwnerListings();
+                    } catch(e) { this.dashboardError = 'Gagal memuat sesi: ' + e.message; }
+                },
+                async loadPublishedListings() {
+                    const client = window.getElsSupabaseClient?.();
+                    if (!client) { this.kosList = []; this.favorites = []; return; }
+                    const {data,error} = await client.from('kos_listings')
+                        .select('id,nama,lokasi,harga,tipe,ketersediaan,fasilitas,peraturan,deskripsi')
+                        .eq('status','approved').order('created_at',{ascending:false});
+                    if (error) { this.kosList = []; this.favorites = []; return; }
+                    this.kosList = (data || []).map(k => ({...k, image:'image.png',rating:'—',jarak:'Hubungi pemilik',reviews:[]}));
+                    this.favorites = [];
+                    this.selectedKos = this.kosList[0] || null;
+                },
+                async loadOwnerListings() {
+                    if (!this.isLoggedIn || this.userRole !== 'owner') return;
+                    const client = window.getElsSupabaseClient?.();
+                    const {data,error} = await client.from('kos_listings').select('id,nama,lokasi,harga,status,ketersediaan').eq('owner_id',this.userId).order('created_at',{ascending:false});
+                    if (error) { this.dashboardError = 'Data kos belum dapat dimuat: ' + error.message; return; }
+                    this.ownerListings = data || [];
+                },
+                async saveOwnerListing() {
+                    if (!this.isLoggedIn || this.userRole !== 'owner' || !this.userId || this.savingListing) return;
+                    const d = this.ownerDraft;
+                    if (!d.nama.trim() || !d.alamat.trim() || !d.lokasi.trim() || !(Number(d.harga) > 0) || !Number.isInteger(Number(d.ketersediaan)) || Number(d.ketersediaan) < 0) {
+                        this.dashboardError = 'Isi nama, alamat, lokasi, harga, dan ketersediaan dengan benar.'; return;
+                    }
+                    this.savingListing = true; this.dashboardError = '';
+                    try {
+                        const client = window.getElsSupabaseClient?.();
+                        const {error} = await client.from('kos_listings').insert({
+                            owner_id:this.userId,nama:d.nama.trim(),alamat:d.alamat.trim(),lokasi:d.lokasi.trim(),
+                            harga:Number(d.harga),ketersediaan:Number(d.ketersediaan),tipe:d.tipe,
+                            fasilitas:d.fasilitas.split(',').map(x=>x.trim()).filter(Boolean),
+                            peraturan:d.peraturan.split(',').map(x=>x.trim()).filter(Boolean),deskripsi:d.deskripsi.trim()
+                        });
+                        if(error) throw error;
+                        this.ownerDraft = {nama:'',alamat:'',lokasi:'',harga:0,ketersediaan:0,tipe:'Putri',fasilitas:'',peraturan:'',deskripsi:''};
+                        await this.loadOwnerListings();
+                        this.showToast('Kos Tersimpan', 'Listing menunggu peninjauan admin.');
+                    } catch(e) { this.dashboardError = 'Gagal menyimpan kos: '+e.message; }
+                    finally {this.savingListing=false;}
+                },
+                async logoutEls() {
+                    const client = window.getElsSupabaseClient?.();
+                    if(client) await client.auth.signOut();
+                    this.isLoggedIn=false;this.userRole=null;this.userId=null;this.userName='';this.ownerListings=[];this.activeTab='home';
                 },
 
                 showToast(title, message) {
@@ -1990,7 +2054,7 @@ submitKonsultasi() {
 </div>
 
 <style>
-  .els-role-overlay[hidden] {
+  .els-role-overlay[hidden], .els-role-options[hidden] {
     display: none !important;
   }
 
@@ -2075,7 +2139,10 @@ submitKonsultasi() {
 </style>
 
 <script>
-  function openElsRole() {
+  function openElsRole(mode = 'login') {
+    elsAuthMode = mode === 'register' ? 'register' : 'login';
+    document.getElementById('elsRoleMessage').textContent = '';
+    document.querySelector('#elsRoleModal .els-role-options')?.removeAttribute('hidden');
     document.getElementById('elsRoleModal').hidden = false;
   }
 
@@ -2083,6 +2150,7 @@ submitKonsultasi() {
 function closeElsRole() {
     document.getElementById('elsRoleModal').hidden = true;
     document.getElementById('elsAuthPanel')?.remove();
+    document.querySelector('#elsRoleModal .els-role-options')?.removeAttribute('hidden');
     elsSelectedRole = null;
 }
  
@@ -2107,6 +2175,7 @@ function chooseElsRole(role) {
     if (oldPanel) oldPanel.remove();
 
     message.textContent = '';
+    document.querySelector('#elsRoleModal .els-role-options')?.setAttribute('hidden','');
 
     const panel = document.createElement('div');
     panel.id = 'elsAuthPanel';
@@ -2224,6 +2293,7 @@ function chooseElsRole(role) {
     document.getElementById('elsBackRole')
         .addEventListener('click', () => {
             panel.remove();
+            document.querySelector('#elsRoleModal .els-role-options')?.removeAttribute('hidden');
             elsSelectedRole = null;
         });
 
@@ -2283,11 +2353,8 @@ async function submitElsAuth(event) {
         return;
     }
 
-    if (!elsAuthClient) {
-        elsAuthClient = window.supabase.createClient(
-            config.url, config.key
-        );
-    }
+    elsAuthClient = window.getElsSupabaseClient();
+    if (!elsAuthClient) { feedback.textContent = 'Supabase belum terhubung.'; return; }
 
     const email = document.getElementById('elsEmail')
         .value.trim();
@@ -2348,7 +2415,7 @@ async function submitElsAuth(event) {
             if (error) throw error;
 
             feedback.textContent = data.session
-                ? 'Sesi akun aktif. Dashboard belum tersedia.'
+                ? 'Pendaftaran berhasil. Akun sedang disiapkan; silakan masuk untuk membuka dashboard.'
                 : 'Permintaan pendaftaran diproses. Periksa email untuk verifikasi jika diperlukan.';
 
         } else {
@@ -2364,12 +2431,19 @@ async function submitElsAuth(event) {
                 throw new Error('Sesi login belum tersedia.');
             }
 
-            feedback.textContent =
-                'Login berhasil! Dashboard sedang dikembangkan.';
-
-            // Jangan mengaktifkan akses owner dari
-            // pilihan frontend. Role perlu diperiksa
-            // melalui database dan aturan akses server.
+            const app = window.Alpine?.$data(document.body);
+            if (app) {
+                await app.loadElsSession();
+                if (!app.isLoggedIn) throw new Error(app.dashboardError || 'Profil belum tersedia.');
+                if (app.userRole !== elsSelectedRole) {
+                    await elsAuthClient.auth.signOut();
+                    app.isLoggedIn = false;
+                    throw new Error('Peran akun ini tidak sesuai. Pilih jenis pengguna sesuai akun yang didaftarkan.');
+                }
+                closeElsRole();
+                app.activeTab = 'dashboard';
+            }
+            feedback.textContent = 'Login berhasil.';
         }
 
     } catch (error) {
